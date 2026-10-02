@@ -1,0 +1,42 @@
+{
+  "name": "panelverdict",
+  "version": "0.1.0",
+  "description": "Ask several AIs the same question, hide who wrote what, have them vote, and return one verdict plus a minority report.",
+  "type": "module",
+  "bin": {
+    "panelverdict": "./bin/panelverdict.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node ./bin/panelverdict.js"
+  },
+  "keywords": [
+    "llm",
+    "ai",
+    "council",
+    "judge",
+    "verdict",
+    "cli",
+    "openai",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "author": "Muhammad Farooq <mfarooq11357@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mfarooq11357/panelverdict.git"
+  },
+  "homepage": "https://github.com/mfarooq11357/panelverdict#readme",
+  "bugs": {
+    "url": "https://github.com/mfarooq11357/panelverdict/issues"
+  }
+}
