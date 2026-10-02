@@ -4,11 +4,13 @@
   "description": "Ask several AIs the same question, hide who wrote what, have them vote, and return one verdict plus a minority report.",
   "type": "module",
   "bin": {
-    "panelverdict": "./bin/panelverdict.js"
+    "panelverdict": "./bin/panelverdict.js",
+    "panelverdict-mcp": "./bin/panelverdict-mcp.js"
   },
   "files": [
     "bin",
     "src",
+    "skills",
     "README.md",
     "LICENSE"
   ],
@@ -25,7 +27,9 @@
     "council",
     "judge",
     "verdict",
-    "cli",
+    "mcp",
+    "claude-code",
+    "cursor",
     "openai",
     "developer-tools"
   ],
