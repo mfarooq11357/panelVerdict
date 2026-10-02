@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { runPanel } from "../src/panel.js";
 import { renderMarkdown } from "../src/render.js";
 import { loadSeats, loadChair, missingKeys } from "../src/config.js";
+import { listProviders } from "../src/providers.js";
 
 const HELP = `panelverdict — one question, several AIs, one verdict
 
@@ -10,6 +11,7 @@ Usage
   panelverdict "your question"
   panelverdict --file question.md
   echo "your question" | panelverdict
+  panelverdict providers
   panelverdict --demo
 
 Options
@@ -18,26 +20,43 @@ Options
   --demo            Run with a fake panel (no API key, no network)
   --help            Show this help
 
+Seats
+  PANELVERDICT_SEATS is a comma list. Each seat is one of:
+    id=model
+    id=provider:model
+    id=model@https://host/v1
+    id=provider:model@https://host/v1
+  A named provider fills the base URL and reads that provider's own key
+  (GROQ_API_KEY, ANTHROPIC_API_KEY, ...). See: panelverdict providers
+
 Environment
-  PANELVERDICT_SEATS       id=model[@baseUrl],...   (default a=gpt-4o-mini,b=gpt-4o-mini)
-  PANELVERDICT_KEY_<ID>    API key for that seat
+  PANELVERDICT_SEATS       seat list (default a=gpt-4o-mini,b=gpt-4o-mini)
+  PANELVERDICT_KEY_<ID>    API key for that seat, wins over the provider key
   PANELVERDICT_API_KEY     Fallback key for every seat
   OPENAI_API_KEY           Used if the two above are unset
-  PANELVERDICT_CHAIR       Chair model (default: first seat's model)
-  PANELVERDICT_CHAIR_BASE  Chair base URL
+  PANELVERDICT_CHAIR       provider:model, or a bare model on the first seat's provider
+  PANELVERDICT_CHAIR_BASE  Chair base URL override
   PANELVERDICT_CHAIR_KEY   Chair API key
+
+Example
+  set PANELVERDICT_SEATS=g=groq:llama-3.3-70b-versatile,c=anthropic:claude-sonnet-4-5,o=openai:gpt-4o-mini
+  set GROQ_API_KEY=gsk-...
+  set ANTHROPIC_API_KEY=sk-ant-...
+  set OPENAI_API_KEY=sk-...
+  set PANELVERDICT_CHAIR=openai:gpt-4o-mini
 
 Judges only see anonymous labels. The score table maps labels back afterwards.
 Agreement is a cross-check, not proof.
 `;
 
 function parseArgs(argv) {
-  const out = { json: false, demo: false, help: false, file: null, question: [] };
+  const out = { json: false, demo: false, help: false, providers: false, file: null, question: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") out.help = true;
     else if (arg === "--json") out.json = true;
     else if (arg === "--demo") out.demo = true;
+    else if (arg === "providers") out.providers = true;
     else if (arg === "--file") {
       out.file = argv[++i];
       if (!out.file) throw new Error("--file needs a path");
@@ -88,6 +107,22 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
     process.stdout.write(HELP);
+    return;
+  }
+  if (args.providers) {
+    const rows = listProviders();
+    if (args.json) {
+      process.stdout.write(`${JSON.stringify(rows, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write("id           key                  wire       base\n");
+    for (const row of rows) {
+      const id = row.id.padEnd(12);
+      const key = row.keyEnv.padEnd(20);
+      const wire = (row.wire || "openai").padEnd(10);
+      process.stdout.write(`${id} ${key} ${wire} ${row.baseUrl || "(Messages API)"}\n`);
+    }
+    process.stderr.write(`\n${rows.length} providers. Seat spec: id=provider:model\n`);
     return;
   }
 

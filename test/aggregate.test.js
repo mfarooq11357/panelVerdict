@@ -52,14 +52,37 @@ test("seat spec parses model and base URL", () => {
   assert.deepEqual(parseSeatSpec("fast=gpt-4o-mini"), {
     id: "fast",
     model: "gpt-4o-mini",
+    provider: undefined,
+    wire: "openai",
     baseUrl: undefined,
+    keyEnv: undefined,
   });
-  assert.deepEqual(parseSeatSpec("local=llama@http://127.0.0.1:11434/v1"), {
-    id: "local",
-    model: "llama",
-    baseUrl: "http://127.0.0.1:11434/v1",
-  });
+  assert.equal(parseSeatSpec("local=llama@http://127.0.0.1:11434/v1").baseUrl, "http://127.0.0.1:11434/v1");
   assert.throws(() => parseSeatSpec("nocolon"), /id=model/);
+});
+
+test("named providers fill base URL and that provider's key", () => {
+  const seats = loadSeats({
+    PANELVERDICT_SEATS: "g=groq:llama-3.3-70b-versatile,o=openai:gpt-4o-mini",
+    GROQ_API_KEY: "gsk-test",
+    OPENAI_API_KEY: "sk-test",
+  });
+  assert.equal(seats[0].provider, "groq");
+  assert.equal(seats[0].baseUrl, "https://api.groq.com/openai/v1");
+  assert.equal(seats[0].apiKey, "gsk-test");
+  assert.equal(seats[0].model, "llama-3.3-70b-versatile");
+  assert.equal(seats[1].provider, "openai");
+  assert.equal(seats[1].apiKey, "sk-test");
+});
+
+test("an explicit URL overrides the named provider", () => {
+  const seats = loadSeats({
+    PANELVERDICT_SEATS: "g=groq:llama@http://127.0.0.1:9/v1",
+    GROQ_API_KEY: "gsk-test",
+  });
+  assert.equal(seats[0].baseUrl, "http://127.0.0.1:9/v1");
+  assert.equal(seats[0].provider, "groq");
+  assert.equal(seats[0].model, "llama");
 });
 
 test("keys resolve per seat then fallback", () => {
@@ -73,6 +96,8 @@ test("keys resolve per seat then fallback", () => {
   assert.equal(seats[1].apiKey, "fallback");
   const chair = loadChair({ PANELVERDICT_CHAIR: "chair-model", OPENAI_API_KEY: "fallback" }, seats);
   assert.equal(chair.model, "chair-model");
+  assert.equal(chair.wire, "openai");
+  assert.equal(chair.baseUrl, undefined);
   assert.deepEqual(missingKeys([{ id: "a", apiKey: "" }], { apiKey: "" }), [
     "PANELVERDICT_KEY_A",
     "PANELVERDICT_CHAIR_KEY",

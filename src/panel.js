@@ -52,6 +52,7 @@ export async function runPanel(opts) {
           baseUrl: seat.baseUrl,
           apiKey: seat.apiKey,
           model: seat.model,
+          wire: seat.wire,
           temperature: seat.temperature ?? 0.4,
           prompt: draftPrompt(question),
         });
@@ -82,6 +83,7 @@ export async function runPanel(opts) {
           baseUrl: seat.baseUrl,
           apiKey: seat.apiKey,
           model: seat.model,
+          wire: seat.wire,
           temperature: 0,
           prompt: judgePrompt(question, blindDrafts),
         });
@@ -110,6 +112,7 @@ export async function runPanel(opts) {
     baseUrl: opts.chair.baseUrl,
     apiKey: opts.chair.apiKey,
     model: opts.chair.model,
+    wire: opts.chair.wire,
     temperature: 0.2,
     prompt: chairPrompt(question, blindDrafts, ranking),
   });
