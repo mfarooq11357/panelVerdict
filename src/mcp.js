@@ -6,7 +6,7 @@
 import { runPanel } from "./panel.js";
 import { loadSeats, loadChair, missingKeys } from "./config.js";
 
-const PROTOCOL = "2025-06-18";
+const PROTOCOL = "2024-11-05";
 const SERVER = { name: "panelverdict", version: "0.1.0" };
 
 const TOOL = {
@@ -25,36 +25,49 @@ const TOOL = {
   },
 };
 
+/** One JSON-RPC message, newline-delimited. That is the MCP stdio transport. */
 export function encodeMessage(obj) {
-  const body = Buffer.from(JSON.stringify(obj), "utf8");
-  return Buffer.concat([Buffer.from(`Content-Length: ${body.length}\r\n\r\n`, "utf8"), body]);
+  return Buffer.from(`${JSON.stringify(obj)}\n`, "utf8");
 }
 
 export function createParser(onMessage) {
-  let buffer = Buffer.alloc(0);
+  let buffer = "";
   return function push(chunk) {
-    buffer = Buffer.concat([buffer, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
+    buffer += Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
     const messages = [];
-    while (true) {
-      const sep = buffer.indexOf("\r\n\r\n");
-      if (sep === -1) break;
-      const header = buffer.slice(0, sep).toString("utf8");
-      const match = header.match(/Content-Length:\s*(\d+)/i);
-      if (!match) {
-        buffer = buffer.slice(sep + 4);
+    while (buffer.length) {
+      if (buffer.startsWith("Content-Length:") || buffer.startsWith("content-length:")) {
+        const sep = buffer.indexOf("\r\n\r\n");
+        if (sep === -1) break;
+        const header = buffer.slice(0, sep);
+        const match = header.match(/Content-Length:\s*(\d+)/i);
+        if (!match) {
+          buffer = buffer.slice(sep + 4);
+          continue;
+        }
+        const length = Number(match[1]);
+        const start = sep + 4;
+        if (buffer.length < start + length) break;
+        const raw = buffer.slice(start, start + length);
+        buffer = buffer.slice(start + length);
+        messages.push(deliver(raw, onMessage));
         continue;
       }
-      const length = Number(match[1]);
-      const start = sep + 4;
-      if (buffer.length < start + length) break;
-      const raw = buffer.slice(start, start + length).toString("utf8");
-      buffer = buffer.slice(start + length);
-      const message = JSON.parse(raw);
-      messages.push(message);
-      onMessage(message);
+      const nl = buffer.indexOf("\n");
+      if (nl === -1) break;
+      const line = buffer.slice(0, nl).replace(/\r$/, "").trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line) continue;
+      messages.push(deliver(line, onMessage));
     }
     return messages;
   };
+}
+
+function deliver(raw, onMessage) {
+  const message = JSON.parse(raw);
+  onMessage(message);
+  return message;
 }
 
 export async function handleMessage(message, deps = {}) {
@@ -63,8 +76,9 @@ export async function handleMessage(message, deps = {}) {
   const id = message.id ?? null;
   try {
     if (message.method === "initialize") {
+      const requested = message.params?.protocolVersion;
       return result(id, {
-        protocolVersion: PROTOCOL,
+        protocolVersion: requested || PROTOCOL,
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER,
       });

@@ -6,6 +6,32 @@ It is a small MIT tool for a decision you do not want a single model to make alo
 
 You can run it from the terminal, or connect it to Claude Code, Cursor, Codex, OpenCode, Cline, Continue, Gemini CLI, or any other client that speaks MCP.
 
+## Add it to an agent
+
+One command registers every agent it finds on this machine: Claude Code, Cursor, Codex, Gemini CLI, OpenCode, Continue, Cline, and Hermes.
+
+```bash
+panelverdict install
+```
+
+From a checkout, before the package is on npm:
+
+```bash
+node bin/panelverdict.js install
+```
+
+That writes the MCP server into each agent's user config, copies `skills/panelverdict/SKILL.md` into that agent's skills folder, and creates `%USERPROFILE%\.panelverdict.env` if it is missing. Put your provider keys in that one file. The server reads it. Agent configs do not get a copy of the keys.
+
+Restart the agent, then ask it to call `panel_verdict`.
+
+```bash
+panelverdict doctor
+```
+
+`doctor` prints which agents are connected and which key names are set. It does not print key values.
+
+Opening this repository is enough for Claude Code and Cursor inside the repo: `.mcp.json` and `.cursor/mcp.json` already point at `node bin/panelverdict-mcp.js`.
+
 ## Install
 
 Node 18 or newer. No runtime dependencies.
@@ -140,9 +166,11 @@ Markdown on stdout, or `--json` for the full report.
 
 Progress (who is drafting, who failed) goes to stderr, so piping stdout stays clean.
 
-## Connect an agent
+## Connect an agent by hand
 
-The MCP server speaks stdio. It exposes one tool, `panel_verdict`, with one argument, `question`. Put API keys in the server `env` block. Do not put keys in the tool call, and do not commit them.
+`panelverdict install` does this for you. The blocks below are the same result, if you want to edit a config yourself.
+
+The MCP server speaks stdio. It exposes one tool, `panel_verdict`, with one argument, `question`. Keys stay in `%USERPROFILE%\.panelverdict.env`. Do not put keys in the tool call, and do not commit them.
 
 The command below assumes a global install. From a checkout, use `node` and the full path to `bin/panelverdict-mcp.js` instead of `panelverdict-mcp`.
 

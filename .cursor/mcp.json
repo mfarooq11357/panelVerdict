@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "panelverdict": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["bin/panelverdict-mcp.js"]
+    }
+  }
+}

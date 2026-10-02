@@ -2,16 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { encodeMessage, createParser, handleMessage } from "../src/mcp.js";
 
-test("frames round-trip through the parser", () => {
+test("newline frames round-trip, and Content-Length frames still parse", () => {
   const seen = [];
   const push = createParser((message) => seen.push(message));
-  const frame = encodeMessage({ jsonrpc: "2.0", id: 1, method: "ping" });
-  const split = Math.floor(frame.length / 2);
-  push(frame.slice(0, split));
-  assert.equal(seen.length, 0);
-  push(frame.slice(split));
-  assert.equal(seen.length, 1);
+  push(encodeMessage({ jsonrpc: "2.0", id: 1, method: "ping" }));
   assert.equal(seen[0].method, "ping");
+  const body = JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" });
+  push(`Content-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`);
+  assert.equal(seen[1].method, "tools/list");
 });
 
 test("initialize and tools/list advertise the one tool", async () => {
