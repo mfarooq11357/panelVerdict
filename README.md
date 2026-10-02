@@ -319,3 +319,5 @@ npm test
 ## License
 
 MIT. Copyright (c) 2026 Muhammad Farooq.
+#   p a n e l V e r d i c t  
+ 
